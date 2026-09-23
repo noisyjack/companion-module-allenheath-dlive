@@ -3,7 +3,7 @@
 <tr>
 <td align="center">
 <h1>⚠️ An important note ⚠️</h1>
-<h3>In this particular repo, I am making heavy use of Claude for investigating and rapid prototyping.<br>The code is not being checked by a person and should <strong>never</strong> be used in production.</h3>
+<h4>In this repo, I am making heavy use of Claude for investigating and rapid prototyping.<br>The code is not being checked by a person and should <strong>never</strong> be used during a show.</h4>
 <h1>YOU HAVE BEEN WARNED</h1>
 </td>
 </tr>
