@@ -20,6 +20,7 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { decodeMidiMessage } from './midi/decodeMidiMessage.js'
 import { MidiStreamParser } from './midi/midiStreamParser.js'
 import { DliveState } from './state.js'
+import { UpgradeScripts } from './upgrades.js'
 import {
 	eqGainToMidiValue,
 	eqWidthToMidiValue,
@@ -263,6 +264,15 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 						shouldEnable ? 0x40 : 0x00,
 						0xf7,
 					])
+					// The dLive does not echo changes back to the sender, so update the cached state directly
+					this.state.applyEvent({
+						type: 'input_to_group_aux_on',
+						channelNo,
+						destinationChannelType,
+						destinationChannelNo,
+						on: shouldEnable,
+					})
+					this.checkFeedbacks('inputToGroupAuxOn')
 					break
 				}
 
@@ -578,4 +588,4 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 	}
 }
 
-runEntrypoint(ModuleInstance, [])
+runEntrypoint(ModuleInstance, UpgradeScripts)

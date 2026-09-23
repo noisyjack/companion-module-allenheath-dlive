@@ -218,12 +218,12 @@ const InputToGroupAuxOnActionSchema = CompanionActionEventBaseSchema.extend({
 			.int()
 			.min(0)
 			.max(INPUT_CHANNEL_COUNT - 1),
-		on: z.boolean(),
+		mode: z.enum(['on', 'off', 'toggle']),
 	}),
 })
 
 const InputToGroupAuxOnFeedbackSchema = CompanionFeedbackInfoBaseSchema.extend({
-	options: InputToGroupAuxOnActionSchema.shape.options.omit({ on: true }),
+	options: InputToGroupAuxOnActionSchema.shape.options.omit({ mode: true }),
 })
 
 const DcaAssignActionSchema = CompanionActionEventBaseSchema.extend({

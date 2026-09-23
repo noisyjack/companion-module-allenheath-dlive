@@ -285,6 +285,9 @@ type DLiveSetUFXParameterCommand = {
 	}
 }
 
+// Whether the Input to Group / Aux / Matrix action sets the assignment on, off, or toggles it
+type InputToGroupAuxMode = 'on' | 'off' | 'toggle'
+
 // Messages received from the dLive, decoded
 type DLiveEvent = DLiveInputToGroupAuxOnEvent
 

@@ -89,8 +89,11 @@ describe('inputToGroupAuxOn action', () => {
 	// Test first and last input channel
 	const testInputChannels = [1, INPUT_CHANNEL_COUNT]
 
-	// Test on and off states
-	const testOnStates = [true, false]
+	// Test set on and set off modes, with the value each should send
+	const testModes: [InputToGroupAuxMode, boolean][] = [
+		['on', true],
+		['off', false],
+	]
 
 	describe.each(testInputChannels)('input channel %s', (inputChannelNo: number) => {
 		describe.each(destinationChannelTestCases)(
@@ -100,7 +103,7 @@ describe('inputToGroupAuxOn action', () => {
 				const testDestinationChannels = [1, destinationChannelCount]
 
 				describe.each(testDestinationChannels)('destination channel %s', (destinationChannelNo: number) => {
-					it.each(testOnStates)('on=%s', (on: boolean) => {
+					it.each(testModes)('mode=%s', (mode, on) => {
 						const inputChannelIndex = inputChannelNo - 1
 						const destinationChannelIndex = destinationChannelNo - 1
 
@@ -111,7 +114,7 @@ describe('inputToGroupAuxOn action', () => {
 								input: inputChannelIndex,
 								destinationChannelType,
 								[camelCase(`destination_${destinationChannelType}`)]: destinationChannelIndex,
-								on,
+								mode,
 							},
 						}
 
@@ -139,5 +142,49 @@ describe('inputToGroupAuxOn action', () => {
 				})
 			},
 		)
+	})
+
+	describe('mode=toggle', () => {
+		const toggleAction = {
+			...baseAction,
+			options: { ...baseAction.options, destinationChannelType: 'mono_aux', mode: 'toggle' },
+		} as unknown as CompanionActionEvent
+
+		const triggerToggle = (): void | Promise<void> =>
+			moduleInstance.actionDefinitions.inputToGroupAuxOn?.callback?.(toggleAction, {} as CompanionActionContext)
+
+		// The on / off value is the byte before the closing 0xf7
+		const sentValue = (message: number[]) => message[message.length - 2]
+		const lastSentValue = () => sentValue((sendMidiToDliveSpy.mock.lastCall as [number[]])[0])
+
+		beforeEach(() => {
+			moduleInstance.state.clear()
+		})
+
+		it('turns the assignment on when its state is not yet known', () => {
+			void triggerToggle()
+			expect(lastSentValue()).toBe(0x40)
+		})
+
+		it('turns the assignment off when it is on', () => {
+			moduleInstance.state.applyEvent({
+				type: 'input_to_group_aux_on',
+				channelNo: 0,
+				destinationChannelType: 'mono_aux',
+				destinationChannelNo: 0,
+				on: true,
+			})
+			void triggerToggle()
+			expect(lastSentValue()).toBe(0x00)
+		})
+
+		it('alternates on each press', () => {
+			void triggerToggle()
+			void triggerToggle()
+			void triggerToggle()
+			expect(sendMidiToDliveSpy.mock.calls.map(([message]: [number[]]) => sentValue(message))).toEqual([
+				0x40, 0x00, 0x40,
+			])
+		})
 	})
 })

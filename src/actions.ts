@@ -165,21 +165,32 @@ export const UpdateActions = (companionModule: ModuleInstance): void => {
 					include: ['mono_group', 'stereo_group', 'mono_aux', 'stereo_aux', 'mono_matrix', 'stereo_matrix'],
 				}),
 				{
-					type: 'checkbox',
-					label: 'On',
-					id: 'on',
-					default: true,
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 'on',
+					choices: [
+						{ id: 'on', label: 'Set ON' },
+						{ id: 'off', label: 'Set OFF' },
+						{ id: 'toggle', label: 'Toggle' },
+					],
 				},
 			],
 			callback: async (action) => {
 				const { options } = validators.parseInputToGroupAuxOnAction(action)
+				const channelNo = options.input
+				const destinationChannelType = options.destinationChannelType
+				const destinationChannelNo = options[camelCaseStringLiteral(`destination_${destinationChannelType}`)]
+				// An assignment whose state is not yet known is treated as off, matching the feedback
+				const isOn =
+					companionModule.state.getInputToGroupAuxOn(channelNo, destinationChannelType, destinationChannelNo) ?? false
 				companionModule.processCommand({
 					command: 'input_to_group_aux_on',
 					params: {
-						channelNo: options.input,
-						destinationChannelType: options.destinationChannelType,
-						destinationChannelNo: options[camelCaseStringLiteral(`destination_${options.destinationChannelType}`)],
-						shouldEnable: options.on,
+						channelNo,
+						destinationChannelType,
+						destinationChannelNo,
+						shouldEnable: options.mode === 'toggle' ? !isOn : options.mode === 'on',
 					},
 				})
 			},

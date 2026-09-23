@@ -4,6 +4,7 @@ import { createDefaultPreset } from 'ts-jest'
 module.exports = {
 	preset: 'ts-jest',
 	testEnvironment: 'node',
+	maxWorkers: 2,
 	modulePathIgnorePatterns: ['<rootDir>/dist/'],
 	coverageDirectory: 'coverage',
 	coverageReporters: ['json'],

@@ -98,6 +98,18 @@ describe('inputToGroupAuxOn feedback', () => {
 		})
 	})
 
+	describe('changes sent from Companion', () => {
+		// The dLive does not echo a change back to the connection that sent it
+		it.each([true, false])('reflects the assignment being set to %s', (shouldEnable) => {
+			moduleInstance.processCommand({
+				command: 'input_to_group_aux_on',
+				params: { channelNo: 0, destinationChannelType: 'mono_aux', destinationChannelNo: 0, shouldEnable },
+			})
+			expect(evaluate(feedbackEvent(0, 'mono_aux', 0))).toBe(shouldEnable)
+			expect(moduleInstance.checkFeedbacks).toHaveBeenCalledWith('inputToGroupAuxOn')
+		})
+	})
+
 	describe('handleMidiData', () => {
 		it('asks Companion to re-check the feedback when an assignment message arrives', () => {
 			moduleInstance.handleMidiData(Buffer.from(INPUT_1_TO_AUX_1_ON))
