@@ -1,10 +1,14 @@
-# An important note
-
-In this particular repo, I am making heavy use of claude for investigating and rapid prototyping. The code is not being checked by a person and should **never** be used in production.
-
->#**YOU HAVE BEEN WARNED**
-
-
+<div align="center">
+<table>
+<tr>
+<td align="center">
+<h1>⚠️ An important note ⚠️</h1>
+<h3>In this particular repo, I am making heavy use of Claude for investigating and rapid prototyping.<br>The code is not being checked by a person and should <strong>never</strong> be used in production.</h3>
+<h1>YOU HAVE BEEN WARNED</h1>
+</td>
+</tr>
+</table>
+</div>
 
 # Allen & Heath dLive Module for Companion
 
