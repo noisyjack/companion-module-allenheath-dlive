@@ -147,6 +147,24 @@ export const CHANNEL_MIDI_NOTE_OFFSETS: Record<ChannelType, number> = {
 	stereo_ufx_return: 0x5e,
 }
 
+export const CHANNEL_COUNTS: Record<ChannelType, number> = {
+	input: INPUT_CHANNEL_COUNT,
+	mono_group: MONO_GROUP_COUNT,
+	stereo_group: STEREO_GROUP_COUNT,
+	mono_aux: MONO_AUX_COUNT,
+	stereo_aux: STEREO_AUX_COUNT,
+	mono_matrix: MONO_MATRIX_COUNT,
+	stereo_matrix: STEREO_MATRIX_COUNT,
+	mono_fx_send: MONO_FX_SEND_COUNT,
+	stereo_fx_send: STEREO_FX_SEND_COUNT,
+	fx_return: FX_RETURN_COUNT,
+	main: MAIN_COUNT,
+	dca: DCA_COUNT,
+	mute_group: MUTE_GROUP_COUNT,
+	stereo_ufx_send: STEREO_UFX_SEND_COUNT,
+	stereo_ufx_return: STEREO_UFX_RETURN_COUNT,
+}
+
 export const SOCKET_MIDI_NOTE_OFFSETS: Record<SocketType, number> = {
 	mixrack_sockets_1_to_64: 0x00,
 	mixrack_dx_1_to_2: 0x40,

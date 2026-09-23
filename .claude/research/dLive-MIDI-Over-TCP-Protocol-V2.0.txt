@@ -1,0 +1,607 @@
+ 
+ 
+dLive MIDI Over TCP/IP Protocol 
+Firmware V2.0 
+ 
+ This protocol is for use with dLive systems loaded with firmware version V2.0 
+and later. 
+ 
+TCP/IP control is available via any Network port on the dLive Surface or MixRack. Messages are sent 
+using the MIDI format, as described in this document. 
+All MIDI message numbers shown in this specification are hexadecimal. Refer to the end of this 
+specification for a table of values for each of the parameters listed here. All variables are shown in green. 
+ 
+To connect to the MixRack, clients should be configured to use either: 
+Without encryption - Rendezvous port TCP 51325. 
+With TLS/SSL encryption - Rendezvous port TCP 51327. 
+ 
+To connect to the Surface, clients should be configured to use either: 
+Without encryption - Rendezvous port TCP 51328. 
+With TLS/SSL encryption - Rendezvous port TCP 51329. 
+ 
+MIDI Controllable Functions and Parameters: 
+• Fader levels     NRPN   Input, Mix master, FX send, FX return, DCA 
+• Mutes     Note On  Input, Mix master, FX send, FX return, DCA, Mute Groups 
+• Send levels     SysEx   Aux, FX and Matrix sends 
+• DCA assign  NRPN 
+• Input to Main assign NRPN 
+• Preamp - Gain  Pitchbend 
+• Preamp - Pad, 48V SysEx 
+• Name & Colour     SysEx 
+• Scene \ Cue Recall Program Change 
+• PEQ control     NRPN 
+• HPF control  NRPN 
+• MIDI transport  MIDI Machine Control (MMC) 
+• Global UFX Parameters Control Change Key, Scale 
+• UFX Unit Parameters Control Change 
+• Scene Go \ Next \ Previous Control Change 
+ 
+Authentication 
+When the TLS/SSL socket is opened, the first data sent to the dLive should be the following message: 
+UserProfile, UserPassword 
+Where UserProfile = 00 to 1F 
+If the username and password match, then the unit will respond with the six characters “AuthOK”, 
+otherwise the connection will be dropped. 
+ 
+MIDI Running Status 
+dLive uses MIDI running status. This maximises MIDI transmission efficiency by allowing a MIDI message 
+to be sent without its Status byte if the previous transmitted message had the same Status. 
+For example, turning Mute on for Inputs 1, 2 and 3 on MIDI channel 12: 
+Without running status – Full message string 9B, 00, 7F, 9B, 01, 7F, 9B, 02, 7F 
+With running status – Shorter message string 9B, 00, 7F, 01, 7F, 02, 7F 
+The omitted bytes will be shown below in square brackets (eg [9N]). 
+ 
+MIDI channel number 
+N 
+MIDI channel 1 to 12  =   0 to B 
+In order to extend the range of audio channels that can be controlled by MIDI messages the dLive MIDI 
+protocol uses a range of MIDI channels to select between audio channel types. The base MIDI channel 
+N is the lowest channel of the range selected in Utility / Control / MIDI . The audio channel type is 
+selected by offsetting the MIDI channel used in the message and the audio channel number is selected 
+using the note number, as detailed in ‘Channel Selection’ below. 
+Preamp control, Scene recall and MIDI transport use the base MIDI channel N. 
+ 
+  
+=====PAGE=====
+ 
+ 
+Channel Selection 
+CH   (refer to table) 
+Channels are selected using the channel number and note number as follows: 
+Inputs 1 to 128:   N  =  N,     CH =  00 to 7F 
+Mono Groups 1 to 62:  N  =  N + 1, CH =  00 to 3D 
+Stereo Groups 1 to 31:  N  =  N + 1, CH =  40 to 5E 
+Mono Aux 1 to 62:   N  =  N + 2, CH =  00 to 3D 
+Stereo Aux 1 to 31:  N  =  N + 2, CH =  40 to 5E 
+Mono Matrix 1 to 62:  N  =  N + 3, CH =  00 to 3D 
+Stereo Matrix 1 to 31:  N  =  N + 3, CH =  40 to 5E 
+Mono FX Send 1 to 16:  N  =  N + 4, CH =  00 to 0F 
+Stereo FX Send 1 to 16:  N  =  N + 4, CH =  10 to 1F 
+FX Return 1 to 16:   N  =  N + 4, CH =  20 to 2F 
+Mains 1 to 6:   N  =  N + 4, CH =  30 to 35 
+DCA 1 to 24:   N  =  N + 4, CH =  36 to 4D 
+Mute Group 1 to 8:   N  =  N + 4, CH =  4E to 55 
+Stereo UFX Send 1 to 8: N  =  N + 4, CH =  56 to 5D 
+Stereo UFX Return 1 to 8: N  =  N + 4, CH =  5E to 65 
+ 
+SysEx Header 
+SysEx Header 
+This applies to all SysEx messages described later in this specification. 
+F0, 00, 00, 1A, 50, 10, MV, mV 
+Where MV  =  01  (Major version) 
+ mV  =  00  (Minor version) 
+ 
+Mute ON 
+NOTE ON with velocity > 40 followed by NOTE OFF 
+9N, CH, 7F,     [9N], CH, 00 
+ 
+ 
+ 
+Mute OFF 
+NOTE ON with velocity < 40 followed by NOTE OFF 
+9N, CH, 3F,     [9N], CH, 00 
+ 
+Received Mute Messages 
+Velocity 00 and NOTE OFF messages are ignored. 
+Velocity 01 to 3F  =  Mute OFF 
+Velocity 40 to 7F  =  Mute ON 
+ 
+Get Mute Status 
+SysEx message 
+SysEx Header, 0N, 05, 09, CH, F7 
+The unit will then transmit the appropriate Channel Mute ON or OFF message. 
+ 
+Fader Level 
+NRPN with parameter ID 17 
+Fader value LV –inf to +10dB  =  00 to 7F   (refer to table) 
+Select channel Parameter Set fader value 
+BN, 63, CH, [BN], 62, 17, [BN], 06, LV 
+ 
+Get Fader Level 
+SysEx message 
+SysEx Header, 0N, 05, 0B, 17, CH, F7 
+The unit will then transmit the appropriate Fader Level message. 
+ 
+Channel Assignment to Main Mix ON 
+NRPN with parameter ID 18 
+ON value  =  40 to 7F 
+Select channel Parameter Set ON 
+BN, 63, CH, [BN], 62, 18, [BN], 06, 7F 
+ 
+=====PAGE=====
+ 
+ 
+ 
+Channel Assignment to Main Mix OFF 
+NRPN with parameter ID 18 
+OFF value  =  00 to 3F 
+Select channel Parameter Set OFF 
+BN, 63, CH, [BN], 62, 18, [BN], 06, 3F 
+ 
+Get Channel Assignment to Main Mix 
+SysEx message 
+SysEx Header, 0N, 05, 0B, 18, CH, F7 
+The unit will then transmit the appropriate Channel Assignment to Main Mix message. 
+ 
+AUX / FX / Matrix Send Level 
+SysEx message 
+Where SndN and SndCH are the MIDI channel and note number for the channel to be sent to. 
+Send value LV –inf to +10dB  =  00 to 7F 
+Message: 
+ Sysex Header, 0N, 0D, CH, SndN, SndCH, LV, F7 
+Get: 
+ SysEx Header, 0N,  05, 0F, 0D, CH, SndN, SndCH, F7 
+ 
+Input to Group / Aux ON  
+SysEx message  
+Where SndN and SndCH are the MIDI channel and note number for the channel to be sent to.  
+V On value = 40 to 7F  
+Message: 
+Sysex Header, 0N, 0E, CH, SndN, SndCH, V, F7  
+Get: 
+SysEx Header, 0N,  05, 0F, 0E, CH, SndN, SndCH, F7  
+ 
+ 
+ 
+DCA Assignment ON 
+NRPN with parameter ID 40 
+ON value DB for DCA 1 to 24  =  40 to 57 
+Select channel Parameter Set ON 
+BN, 63, CH, [BN], 62, 40, [BN], 06, DB 
+ 
+DCA Assignment OFF 
+NRPN with parameter ID 40 
+OFF value DA for DCA 1 to 24  =  00 to 17 
+Select channel Parameter Set OFF 
+BN, 63, CH, [BN], 62, 40, [BN], 06, DA 
+ 
+Mute Group Assignment ON 
+NRPN with parameter ID 40 
+ON value DB for Mute Group 1 to 8  =  58 to 5F 
+Select channel Parameter Set ON 
+BN, 63, CH, [BN], 62, 40, [BN], 06, DB 
+ 
+Mute Group Assignment OFF 
+NRPN with parameter ID 40 
+OFF value DA for Mute Group 1 to 8  =  18 to 1F 
+Select channel Parameter Set OFF 
+BN, 63, CH, [BN], 62, 40, [BN], 06, DA 
+ 
+Socket Preamp numbers  (refer to table) 
+Mixrack sockets 1-64   MP  =  00 to 3F 
+Mixrack DX 1/2 1-32  MP  =  40 to 5F 
+Mixrack DX 3/4 1-32  MP  =  60 to 7F 
+ 
+ 
+=====PAGE=====
+ 
+ 
+Set Socket Preamp Gain 
+Pitchbend message 
+Gain value GV min to max  =  00 to 7F     (refer to table) 
+EN, MP, GV 
+Get Socket Preamp Gain 
+SysEx message 
+SysEx Header, 0N, 05, 0B, 19, CH, F7 
+The unit will then transmit the appropriate Socket Preamp Gain message. 
+ 
+Set Socket Preamp Pad 
+SysEx message 
+SysEx Header, 0N, 09, MP, Pad, F7  where Pad OFF= 00 to 3F, ON = 40 to 7F 
+Get Socket Preamp Pad 
+SysEx message 
+SysEx Header, 0N, 07, MP, F7 
+The unit will then transmit the following message: 
+Reply… SysEx Header, 0N, 08, MP, Pad, F7  where Pad OFF= 00,  ON = 7F 
+ 
+Set Socket Preamp 48V 
+SysEx message 
+SysEx Header, 0N, 0C, MP, 48V, F7  where 48V  OFF = 00 to 3F, ON = 40 to 7F 
+Get Socket Preamp 48V 
+SysEx Header, 0N, 0A, MP, F7 
+The unit will then transmit the following message: 
+SysEx Header, 0N, 0B, MP, 48V, F7   where 48V  OFF = 00,          ON = 7F 
+ 
+ 
+ 
+ 
+ 
+Set Channel Name 
+SysEx message 
+SysEx Header, 0N, 03, CH, Name, F7  where Name = Hex ASCII String 
+Get Channel Name 
+SysEx message 
+SysEx Header, 0N, 01, CH, F7 
+The unit will then transmit the following message: 
+SysEx Header, 0N, 02, CH, Name, F7  where Name = Hex ASCII String 
+ 
+Set Channel Colour 
+SysEx message 
+SysEx Header, 0N, 06, CH, Col, F7  where Col = 00 to 07  (refer to table) 
+Get Channel Colour 
+SysEx Header, 0N, 04, CH, F7 
+The unit will then transmit the following message: 
+SysEx Header, 0N, 05, CH, Col, F7        where Col = 00 to 07  (refer to table) 
+ 
+Scene Recall (MixRack Only) 
+Bank and Program Change message 
+To recall one of the 500 Scenes (4 banks) 
+Also transmits this message when a Scene is recalled from the dLive screen 
+For Scene 1 to 128 
+Scene SS 1 to 128  =  00 to 7F   (refer to table) 
+Select bank Recall Sce ne 
+BN, 00, 00, CN, SS 
+ 
+For Scene 129 to 256 
+Scene SS 129 to 256  =  00 to 7F   (refer to table) 
+Select bank Recall Scene 
+BN, 00, 01, CN, SS 
+ 
+=====PAGE=====
+ 
+ 
+For Scene 257 to 384 
+Scene SS 257 to 384  =  00 to 7F   (refer to table) 
+Select bank Recall Scene 
+BN, 00, 02, CN, SS 
+ 
+For Scene 385 to 500 
+Scene SS 385 to 500  =  00 to 73   (refer to table) 
+Select bank Recall Scene 
+BN, 00, 03, CN, SS 
+            
+ 
+Cue List Recall (Surface Only) 
+Bank and Program Change message 
+To recall a cue using one of the 2000 user assignable Recall Ids (16 banks). 
+Also transmits this message when a cue is recalled from the dLive console. 
+The MIDI message required can also be viewed by selecting the Surface MIDI display option in the dLive 
+Scene Manager.   
+For Recall Id 0 to 127  Recall Id SS 0 to 127 = 00 to 7F  Bank Number RR = 00  
+  
+For Recall Id 128 to 255 Recall Id SS 128 to 255 = 00 to 7F Bank Number RR = 01  
+ 
+For Recall Id 256 to 383  Recall Id SS 256 to 383 = 00 to 7F Bank Number RR = 02  
+ 
+For Recall Id 384 to 511  Recall Id SS 384 to 511 = 00 to 7F  Bank Number RR = 03  
+ 
+For Recall Id 512 to 639  Recall Id SS 512 to 639 = 00 to 7F  Bank Number RR = 04  
+  
+For Recall Id 640 to 767 Recall Id SS 640 to 767 = 00 to 7F Bank Number RR = 05  
+ 
+For Recall Id 768 to 895  Recall Id SS 768 to 895 = 00 to 7F Bank Number RR = 06  
+ 
+For Recall Id 896 to 1023  Recall Id SS 896 to 1023 = 00 to 7F  Bank Number RR = 07  
+ 
+For Recall Id 1024 to 1151  Recall Id SS 1024 to 1151 = 00 to 7F  Bank Number RR = 08  
+  
+For Recall Id 1152 to 1279 Recall Id SS 1152 to 1279 = 00 to 7F Bank Number RR = 09  
+ 
+For Recall Id 1280 to 1407  Recall Id SS 1280 to 1407 = 00 to 7F Bank Number RR = 0A  
+ 
+For Recall Id 1408 to 1535  Recall Id SS 1408 to 1535 = 00 to 7F  Bank Number RR = 0B 
+  
+For Recall Id 1536 to 1663  Recall Id SS 1536 to 1663 = 00 to 7F  Bank Number RR = 0C  
+  
+For Recall Id 1664 to 1791 Recall Id SS 1664 to 1791 = 00 to 7F Bank Number RR = 0D  
+ 
+For Recall Id 1792 to 1919  Recall Id SS 1792 to 1919 = 00 to 7F Bank Number RR = 0E  
+ 
+For Recall Id 1920 to 1999  Recall Id SS 1920 to 1999 = 00 to 4F  Bank Number RR = 0F  
+MIDI Message 
+ 
+Select bank Recall Cue 
+BN, 00, RR, CN, SS   (refer to table) 
+ 
+       
+Go / Next / Previous (Surface Only) 
+Control Change message with user defined Control Number and Value. 
+Go / Next / Previous Scene controls can be triggered by user defined CC messages setup in the dLive 
+Utility \ Control \ MIDI page. Note that not all CC messages are available as some are reserved for use 
+by other MIDI controls. 
+Control Change  
+BN, Number, Value   where  Number is Control Number  
+     Value is Control Value 
+ 
+  
+=====PAGE=====
+ 
+ 
+Parametric EQ 
+NRPN with parameter ID between 1A and 29 depending on function and band (see table) 
+Select channel Parameter Set Value 
+BN, 63, CH, [BN], 62, nn, [BN], 06, vv 
+ 
+nn Parameter ID: 
+ Type Frequency Width Gain 
+Band 0 1A 1B 1C 1D 
+Band 1 1E 1F 20 21 
+Band 2 22 23 24 25 
+Band 3 26 27 28 29 
+ 
+vv For Type 
+From table: 
+Type Vv (dec) Vv (hex) Notes 
+Bell 0 00 Only use on bands 0 and 3 
+LF Shelf 1 01 Only use on band 0 
+HF Shelf 2 02 Only use on band 3 
+L Pass 3 03 Only use on band 3 
+H Pass 4 04 Only use on band 0 
+ 
+ 
+vv For Frequency 
+For frequencies between 20Hz and 20kHz 
+Vv = INT(127*((4608*LOG10(FREQUENCY/4)/LOG10(2))-10699)/45922) 
+eg. 
+Frequency Vv (dec) Vv (hex) 
+20Hz 0 00 
+50Hz 16 10 
+100Hz 29 1D 
+500Hz 59 3B 
+1kHz 71 47 
+10kHz 114 72 
+20kHz 127 7F 
+ 
+vv For Gain 
+For gains from -15dB to +15dB 
+Vv = (GAIN + 15 ) * 126 / 30 
+eg. 
+Gain Vv (dec) Vv (hex) 
+-15dB 0 00 
+-10dB 21 15 
+-5db 42 2A 
+0dB 63 3F 
+5db 84 54 
+10db 105 69 
+15db 126 7F 
+ 
+vv For Width 
+From table: 
+Width Vv (dec) Vv (hex) 
+1.5 0 00 
+1.4 1 01 
+1.3 2 02 
+1.2 3 03 
+1.1 4 04 
+1 5 05 
+0.95 6 06 
+0.9 7 07 
+0.85 8 08 
+0.8 9 09 
+3/4 10 0A 
+=====PAGE=====
+ 
+ 
+0.7 11 0B 
+2/3 12 0C 
+0.6 13 0D 
+0.55 14 0E 
+0.5 15 0F 
+0.45 16 10 
+0.4 17 11 
+1/3 18 12 
+0.3 19 13 
+1/4 20 14 
+0.2 21 15 
+1/6 22 16 
+0.13 23 17 
+1/9 24 18 
+ 
+Get Parametric EQ  
+SysEx message 
+SysEx Header, 0N, 05, 0B, nn, CH, F7 
+The unit will then transmit the appropriate Parametric EQ message. 
+ 
+HPF Frequency 
+NRPN with parameter ID 30   
+Select channel  Parameter  Set Value  
+BN, 63, CH,  [BN], 62, 30,  [BN], 06, vv  
+vv = INT(127*((4608 * LOG10(FREQUENCY / 4) / LOG10(2)) - 10699) / 41314)  
+ 
+Get HPF Frequency 
+SysEx message  
+SysEx Header, 0N, 05, 0B, 30, CH, F7  
+The unit will then transmit the appropriate HPF Frequency message. 
+ 
+Set HPF On/Off 
+NRPN with parameter ID 31   
+Select channel  Parameter  Set Value  
+BN, 63, CH,  [BN], 62, 31,  [BN], 06, HPF   
+where HPF OFF= 00 to 3F, ON = 40 to 7F 
+ 
+Get HPF On/Off 
+SysEx message  
+SysEx Header, 0N, 05, 0B, 31, CH, F7  
+The unit will then transmit the appropriate HPF On/Off message. 
+ 
+Set UFX Global Key  
+Control Change message with control number 0C 
+BN, 0C, Key    where Key = 00 to 0B  (refer to table) 
+ 
+Set UFX Global Scale  
+Control Change message with control number 0D 
+BN, 0D, Scale    where Scale = 00 to 01  (refer to table) 
+ 
+  
+=====PAGE=====
+ 
+ 
+UFX Unit MIDI Channel Numbers 
+M 
+Optionally, a MIDI channel M per UFX unit may be assigned to control UFX parameters, configured either 
+in Utility / Control / MIDI or FX / UFX / Show Routing / MIDI Settings. 
+These MIDI channels must not be within the range of MIDI channels con figured for controlling the rest 
+of the dLive system (i.e., N through N + 4). Multiple UFX units may share the same MIDI channel M. 
+Parameters are controlled by an CC message as described below. The mapping between the control 
+number and the UFX parameter is configured for individual UFX units in FX / UFX / Show Routing / 
+MIDI Settings. 
+ 
+Set UFX Unit Parameter 
+CC message to UFX MIDI channel M and value vv, with control number nn configured by user. 
+Select channel  Parameter  Set Value  
+BM,  nn,                   vv  
+ 
+Note that key and scale messages to local UFX unit are treated as UFX parameters. Thus, key and scale 
+UFX parameters and Global Key / Scale do not share the same CC value. Instead, CC value is scaled 
+to cover the full range of UFX parameters. Please refer to the examples below. 
+UFX Parameter 
+ “Key” 
+CC Value Start 
+(dec) 
+CC Value End 
+(dec) 
+CC Value Start 
+(hex) 
+CC Value Start 
+(hex) 
+C 0 10 00 0A 
+C# 11 21 0B 15 
+D 22 31 16 1F 
+D# 32 42 20 2A 
+E 43 52 2B 34 
+F 53 63 35 3F 
+F# 64 74 40 4A 
+G 75 84 4B 54 
+G# 85 95 55 5F 
+A 96 105 60 69 
+A# 106 116 6A 74 
+B 117 127 75 7F 
+ 
+UFX Parameter 
+ “Scale” 
+CC Value Start 
+(dec) 
+CC Value End 
+(dec) 
+CC Value Start 
+(hex) 
+CC Value Start 
+(hex) 
+Major 0 42 00 2A 
+Minor 43 84 2B 54 
+Chromatic 85 127 55 7F 
+ 
+MIDI Strips 
+Custom MIDI messages 
+Fader strips within the Banks can be assigned as MIDI Strips. There are 32 MIDI Strips available. 
+Each fader strip control can be assigned to transmit a custom MIDI message. This is used for controlling 
+audio within a Digital Audio Workstation (DAW), a slave mixer, or paramet ers on external equipment 
+such as effects devices. MIDI Strips can be named and coloured. The y are stored within Scenes and 
+can be made Safe from Scene recall. 
+The Template Shows load the following factory default messages for the MIDI Strip controls. These can 
+be restored by recalling Scene 9 within the Template Show: 
+ 
+• Fader    B1, 00, <VAR> to B1, 1F, <VAR> 
+• Rotary Gain  B2, 00, <VAR> to B2, 1F, <VAR> 
+• Rotary Pan   B2, 20, <VAR> to B2, 3F, <VAR> 
+• Rotary Custom 1   B2, 40, <VAR> to B2, 5F, <VAR> 
+• Rotary Custom 2   B2, 60, <VAR> to B2, 7F, <VAR> 
+• Rotary Custom 3   B2, 40, <VAR> to B2, 5F, <VAR> 
+• Rotary Custom 4   B2, 60, <VAR> to B2, 7F, <VAR> 
+• Mute key  =   91, 00, <VAR> to 91, 1F, <VAR> 
+• Mix key  =   91, 20, <VAR> to 91, 3F, <VAR> 
+• PAFL key  =   91, 40, <VAR> to 91, 5F, <VAR> 
+   Where <VAR> is the value determined by the position of the control. 
+ 
+ The Sel key is not included as this is required to select this Processing screen for 
+configuring the MIDI Strip. 
+ By default, Rotary Custom 3 uses the same values as Rotary Custom 1 and Rotary 
+Custom 4 uses the same values as Rotary Custom 2 
+ 
+=====PAGE=====
+ 
+ 
+ 
+ALLEN&HEATH
+dLive MIDI TCP/IP Reference Table - v2.0
+Scene Number Scene Number Input Channel Input Channel Mono Gro up Stereo Group Mono FX Send DCA MixRack Socket Name UFX Sends
+SS SS CH (N=N) CH (N=N) CH (N=N+1) CH (N=N+1) CH (N=N+4) CH (N =N+4) MP Name CH (N=N+4)
+Bank 1 Bank 2 Bank 3 Bank 4 Hex Bank 1 Bank 2 Bank 3 Bank 4 Hex CH Hex CH Hex CH Hex CH Hex CH Hex CH Hex CH Hex CH Hex CH Hex Skt Skt Hex Char Hex CH Hex
+1 129 257 385 00 65 193 321 449 40 1 00 33 20 65 40 97 60 1 00 33 20 1 40 1 00 1 36 1 33 20 A 41 a 61 ! 21 Space 20 1 56
+2 130 258 386 01 66 194 322 450 41 2 01 34 21 66 41 98 61 2 01 34 21 2 41 2 01 2 37 2 34 21 B 42 b 62 " 22 0 30 2 57
+3 131 259 387 02 67 195 323 451 42 3 02 35 22 67 42 99 62 3 02 35 22 3 42 3 02 3 38 3 35 22 C 43 c 63 # 23 1 31 3 58
+4 132 260 388 03 68 196 324 452 43 4 03 36 23 68 43 100 63 4 03 36 23 4 43 4 03 4 39 4 36 23 D 44 d 64 % 25 2 32 4 59
+5 133 261 389 04 69 197 325 453 44 5 04 37 24 69 44 101 64 5 04 37 24 5 44 5 04 5 3A 5 37 24 E 45 e 65 & 26 3 33 5 5A
+6 134 262 390 05 70 198 326 454 45 6 05 38 25 70 45 102 65 6 05 38 25 6 45 6 05 6 3B 6 38 25 F 46 f 66 ' 27 4 34 6 5B
+7 135 263 391 06 71 199 327 455 46 7 06 39 26 71 46 103 66 7 06 39 26 7 46 7 06 7 3C 7 39 26 G 47 g 67 ( 28 5 35 7 5C
+8 136 264 392 07 72 200 328 456 47 8 07 40 27 72 47 104 67 8 07 40 27 8 47 8 07 8 3D 8 40 27 H 48 h 68 ) 29 6 36 8 5D
+9 137 265 393 08 73 201 329 457 48 9 08 41 28 73 48 105 68 9 08 41 28 9 48 9 08 9 3E 9 41 28 I 49 i 69 * 2A 7 37
+10 138 266 394 09 74 202 330 458 49 10 09 42 29 74 49 106 69 10 09 42 29 10 49 10 09 10 3F # 42 29 J 4A j 6A + 2B 8 38 UFX Returns
+11 139 267 395 0A 75 203 331 459 4A 11 0A 43 2A 75 4A 107 6A 11 0A 43 2A 11 4A 11 0A 11 40 # 43 2A K 4B k 6B , 2C 9 39 CH (N=N+4)
+12 140 268 396 0B 76 204 332 460 4B 12 0B 44 2B 76 4B 108 6B 12 0B 44 2B 12 4B 12 0B 12 41 # 44 2B L 4C l 6C - 2D CH Hex
+13 141 269 397 0C 77 205 333 461 4C 13 0C 45 2C 77 4C 109 6C 13 0C 45 2C 13 4C 13 0C 13 42 # 45 2C M 4D m 6D . 2E 1 5E
+14 142 270 398 0D 78 206 334 462 4D 14 0D 46 2D 78 4D 110 6D 14 0D 46 2D 14 4D 14 0D 14 43 # 46 2D N 4E n 6E / 2F 2 5F
+15 143 271 399 0E 79 207 335 463 4E 15 0E 47 2E 79 4E 111 6E 15 0E 47 2E 15 4E 15 0E 15 44 # 47 2E O 4F o 6F < 3C 3 60
+16 144 272 400 0F 80 208 336 464 4F 16 0F 48 2F 80 4F 112 6F 16 0F 48 2F 16 4F 16 0F 16 45 # 48 2F P 50 p 70 = 3D 4 61
+17 145 273 401 10 81 209 337 465 50 17 10 49 30 81 50 113 70 17 10 49 30 17 50 17 46 # 49 30 Q 51 q 71 > 3E 5 62
+18 146 274 402 11 82 210 338 466 51 18 11 50 31 82 51 114 71 18 11 50 31 18 51 Stereo FX Send 18 47 # 50 31 R 52 r 72 ? 3F 6 63
+19 147 275 403 12 83 211 339 467 52 19 12 51 32 83 52 115 72 19 12 51 32 19 52 CH (N=N+4) 19 48 # 51 32 S 53 s 73 @ 40 7 64
+20 148 276 404 13 84 212 340 468 53 20 13 52 33 84 53 116 73 20 13 52 33 20 53 CH Hex 20 49 # 52 33 T 54 t 74 [ 5B 8 65
+21 149 277 405 14 85 213 341 469 54 21 14 53 34 85 54 117 74 21 14 53 34 21 54 1 10 21 4A # 53 34 U 55 u 75 \ 5C
+22 150 278 406 15 86 214 342 470 55 22 15 54 35 86 55 118 75 22 15 54 35 22 55 2 11 22 4B # 54 35 V 56 v 76 ] 5D
+23 151 279 407 16 87 215 343 471 56 23 16 55 36 87 56 119 76 23 16 55 36 23 56 3 12 23 4C # 55 36 W 57 w 77 _ 5F
+24 152 280 408 17 88 216 344 472 57 24 17 56 37 88 57 120 77 24 17 56 37 24 57 4 13 24 4D # 56 37 X 58 x 78 { 7B
+25 153 281 409 18 89 217 345 473 58 25 18 57 38 89 58 121 78 25 18 57 38 25 58 5 14 # 57 38 Y 59 y 79 } 7D
+26 154 282 410 19 90 218 346 474 59 26 19 58 39 90 59 122 79 26 19 58 39 26 59 6 15 MUTE Group # 58 39 Z 5A z 7A ~ 7E
+27 155 283 411 1A 91 219 347 475 5A 27 1A 59 3A 91 5A 123 7A 27 1A 59 3A 27 5A 7 16 CH (N=N+4) # 59 3A
+28 156 284 412 1B 92 220 348 476 5B 28 1B 60 3B 92 5B 124 7B 28 1B 60 3B 28 5B 8 17 CH Hex # 60 3B
+29 157 285 413 1C 93 221 349 477 5C 29 1C 61 3C 93 5C 125 7C 29 1C 61 3C 29 5C 9 18 1 4E # 61 3C Gain Value Colour
+30 158 286 414 1D 94 222 350 478 5D 30 1D 62 3D 94 5D 126 7D 30 1D 62 3D 30 5D 10 19 2 4F # 62 3D GV Col
+31 159 287 415 1E 95 223 351 479 5E 31 1E 63 3E 95 5E 127 7E 31 1E 31 5E 11 1A 3 50 # 63 3E dB Hex Dec Colour Hex
+32 160 288 416 1F 96 224 352 480 5F 32 1F 64 3F 96 5F 128 7F 32 1F 12 1B 4 51 # 64 3F +60 7F 127 Off 00
+33 161 289 417 20 97 225 353 481 60 13 1C 5 52 +55 73 115 Red 01
+34 162 290 418 21 98 226 354 482 61 Mono Aux Stereo Aux Mono Matrix Stereo Matrix 14 1D 6 53 DX1 DX3/4 Socket +50 67 103 Green 02
+35 163 291 419 22 99 227 355 483 62 CH (N=N+2) CH (N=N+2) CH (N=N+3) CH (N=N+3) 15 1E 7 54 MPMP +45 5C 92 Yellow 03
+36 164 292 420 23 100 228 356 484 63 CH Hex CH Hex CH Hex CH Hex CH Hex CH Hex 16 1F 8 55 Skt Skt Hex +40 50 80 Blue 04
+37 165 293 421 24 101 229 357 485 64 1 00 33 20 1 40 1 00 33 20 1 40 1 1 60 +35 45 69 Purple 05
+38 166 294 422 25 102 230 358 486 65 2 01 34 21 2 41 2 01 34 21 2 41 2 2 61 +30 3A 58 Lt Blue 06
+39 167 295 423 26 103 231 359 487 66 3 02 35 22 3 42 3 02 35 22 3 42 FX Return MIDI Channel 3 3 62 +25 2E 46 White 07
+40 168 296 424 27 104 232 360 488 67 4 03 36 23 4 43 4 03 36 23 4 43 CH (N=N+4) N 4 4 63 +20 22 34
+41 169 297 425 28 105 233 361 489 68 5 04 37 24 5 44 5 04 37 24 5 44 CH Hex Mix Hex 5 5 64 +15 17 23 UFX Key
+42 170 298 426 29 106 234 362 490 69 6 05 38 25 6 45 6 05 38 25 6 45 1 20 1 00 6 6 65 +10 0C 12 Key
+43 171 299 427 2A 107 235 363 491 6A 7 06 39 26 7 46 7 06 39 26 7 46 2 21 2 01 7 7 66 +5 00 0 Key Hex
+44 172 300 428 2B 108 236 364 492 6B 8 07 40 27 8 47 8 07 40 27 8 47 3 22 3 02 8 8 67 [(Gain-5)/55]*7F C 00
+45 173 301 429 2C 109 237 365 493 6C 9 08 41 28 9 48 9 08 41 28 9 48 4 23 4 03 9 9 68 C# 01
+46 174 302 430 2D 110 238 366 494 6D 10 09 42 29 10 49 10 09 42 29 10 49 5 24 5 04 # 10 69 D 02
+47 175 303 431 2E 111 239 367 495 6E 11 0A 43 2A 11 4A 11 0A 43 2A 11 4A 6 25 6 05 # 11 6A Fader Level D# 03
+48 176 304 432 2F 112 240 368 496 6F 12 0B 44 2B 12 4B 12 0B 44 2B 12 4B 7 26 7 06 # 12 6B LV E 04
+49 177 305 433 30 113 241 369 497 70 13 0C 45 2C 13 4C 13 0C 45 2C 13 4C 8 27 8 07 # 13 6C dBu Hex Dec F 05
+50 178 306 434 31 114 242 370 498 71 14 0D 46 2D 14 4D 14 0D 46 2D 14 4D 9 28 9 08 # 14 6D +10 7F 127 F# 06
+51 179 307 435 32 115 243 371 499 72 15 0E 47 2E 15 4E 15 0E 47 2E 15 4E 10 29 10 09 # 15 6E +5 74 117 G 07
+52 180 308 436 33 116 244 372 500 73 16 0F 48 2F 16 4F 16 0F 48 2F 16 4F 11 2A 11 0A # 16 6F 0 6B 107 G# 08
+53 181 309 437 34 117 245 373 74 17 10 49 30 17 50 17 10 49 30 17 50 12 2B 12 0B # 17 70 -5 61 97 A 09
+54 182 310 438 35 118 246 374 75 18 11 50 31 18 51 18 11 50 31 18 51 13 2C 13 0C # 18 71 -10 57 87 A# 0A
+55 183 311 439 36 119 247 375 76 19 12 51 32 19 52 19 12 51 32 19 52 14 2D 14 0D # 19 72 -15 4D 77 B 0B
+56 184 312 440 37 120 248 376 77 20 13 52 33 20 53 20 13 52 33 20 53 15 2E 15 0E # 20 73 -20 43 67
+57 185 313 441 38 121 249 377 78 21 14 53 34 21 54 21 14 53 34 21 54 16 2F 16 0F # 21 74 -25 39 57 UFX Scale
+58 186 314 442 39 122 250 378 79 22 15 54 35 22 55 22 15 54 35 22 55 # 22 75 -30 2F 47 Scale
+59 187 315 443 3A 123 251 379 7A 23 16 55 36 23 56 23 16 55 36 23 56 # 23 76 -35 25 37 Scale Hex
+60 188 316 444 3B 124 252 380 7B 24 17 56 37 24 57 24 17 56 37 24 57 Mains # 24 77 -40 1B 27 Major 00
+61 189 317 445 3C 125 253 381 7C 25 18 57 38 25 58 25 18 57 38 25 58 CH (N=N+4) # 25 78 -45 11 17 Minor 01
+62 190 318 446 3D 126 254 382 7D 26 19 58 39 26 59 26 19 58 39 26 59 CH Hex # 26 79 -inf 00 0
+63 191 319 447 3E 127 255 383 7E 27 1A 59 3A 27 5A 27 1A 59 3A 27 5A 1 30 # 27 7A [(Gain+54)/64]*7F
+64 192 320 448 3F 128 256 384 7F 28 1B 60 3B 28 5B 28 1B 60 3B 28 5B 2 31 # 28 7B
+29 1C 61 3C 29 5C 29 1C 61 3C 29 5C 3 32 # 29 7C
+30 1D 62 3D 30 5D 30 1D 62 3D 30 5D 4 33 # 30 7D
+31 1E 31 5E 31 1E 31 5E 5 34 # 31 7E
+32 1F 32 1F 6 35 # 32 7F

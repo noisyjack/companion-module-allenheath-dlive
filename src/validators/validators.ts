@@ -1,4 +1,4 @@
-import { CompanionActionEvent } from '@companion-module/base'
+import { CompanionActionEvent, CompanionFeedbackInfo } from '@companion-module/base'
 import { z } from 'zod'
 
 import {
@@ -59,6 +59,17 @@ const CompanionActionEventBaseSchema = z.object({
 	id: z.string(),
 	controlId: z.string(),
 	actionId: z.string(),
+	options: z.record(z.string(), InputValueSchema.optional()),
+})
+
+/**
+ * Schema representing the CompanionFeedbackInfo interface, the base for all feedbacks coming from Companion
+ */
+const CompanionFeedbackInfoBaseSchema = z.object({
+	type: z.enum(['boolean', 'value', 'advanced']),
+	id: z.string(),
+	controlId: z.string(),
+	feedbackId: z.string(),
 	options: z.record(z.string(), InputValueSchema.optional()),
 })
 
@@ -209,6 +220,10 @@ const InputToGroupAuxOnActionSchema = CompanionActionEventBaseSchema.extend({
 			.max(INPUT_CHANNEL_COUNT - 1),
 		on: z.boolean(),
 	}),
+})
+
+const InputToGroupAuxOnFeedbackSchema = CompanionFeedbackInfoBaseSchema.extend({
+	options: InputToGroupAuxOnActionSchema.shape.options.omit({ on: true }),
 })
 
 const DcaAssignActionSchema = CompanionActionEventBaseSchema.extend({
@@ -391,6 +406,8 @@ export type AuxFXMatrixSendLevelAction = z.infer<typeof AuxFXMatrixSendLevelActi
 
 export type InputToGroupAuxOnAction = z.infer<typeof InputToGroupAuxOnActionSchema>
 
+export type InputToGroupAuxOnFeedback = z.infer<typeof InputToGroupAuxOnFeedbackSchema>
+
 export type DcaAssignAction = z.infer<typeof DcaAssignActionSchema>
 
 export type MuteGroupAssignAction = z.infer<typeof MuteGroupAssignActionSchema>
@@ -484,6 +501,9 @@ export const parseSetUfxGlobalScaleAction = (action: CompanionActionEvent): SetU
 
 export const parseSetUfxUnitParameterAction = (action: CompanionActionEvent): SetUfxUnitParameterAction =>
 	SetUfxUnitParameterActionSchema.parse(action)
+
+export const parseInputToGroupAuxOnFeedback = (feedback: CompanionFeedbackInfo): InputToGroupAuxOnFeedback =>
+	InputToGroupAuxOnFeedbackSchema.parse(feedback)
 
 export const parseDliveModuleConfig = (config: Record<string, unknown>): DLiveModuleConfig =>
 	DliveModuleConfigSchema.parse(config)

@@ -39,6 +39,7 @@ type DLiveCommand =
 	| DLiveChannelAssignmentToMainMixOffCommand
 	| DLiveAuxFxMatrixSendLevelCommand
 	| DLiveInputToGroupAuxOnCommand
+	| DLiveGetInputToGroupAuxOnCommand
 	| DLiveDcaAssignmentOnCommand
 	| DLiveDcaAssignmentOffCommand
 	| DLiveMuteGroupAssignmentOnCommand
@@ -117,6 +118,15 @@ type DLiveInputToGroupAuxOnCommand = {
 		destinationChannelType: ChannelType
 		destinationChannelNo: number
 		shouldEnable: boolean
+	}
+}
+
+type DLiveGetInputToGroupAuxOnCommand = {
+	command: 'get_input_to_group_aux_on'
+	params: {
+		channelNo: number
+		destinationChannelType: ChannelType
+		destinationChannelNo: number
 	}
 }
 
@@ -273,6 +283,17 @@ type DLiveSetUFXParameterCommand = {
 		controlNumber: number
 		value: number
 	}
+}
+
+// Messages received from the dLive, decoded
+type DLiveEvent = DLiveInputToGroupAuxOnEvent
+
+type DLiveInputToGroupAuxOnEvent = {
+	type: 'input_to_group_aux_on'
+	channelNo: number
+	destinationChannelType: ChannelType
+	destinationChannelNo: number
+	on: boolean
 }
 
 type EqMidiParameters = {

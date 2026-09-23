@@ -16,6 +16,10 @@ import {
 	SOCKET_MIDI_NOTE_OFFSETS,
 	SYSEX_HEADER,
 } from './constants.js'
+import { UpdateFeedbacks } from './feedbacks.js'
+import { decodeMidiMessage } from './midi/decodeMidiMessage.js'
+import { MidiStreamParser } from './midi/midiStreamParser.js'
+import { DliveState } from './state.js'
 import {
 	eqGainToMidiValue,
 	eqWidthToMidiValue,
@@ -28,6 +32,8 @@ import { parseDliveModuleConfig } from './validators/index.js'
 export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 	config?: DLiveModuleConfig
 	midiSocket?: TCPHelper
+	state = new DliveState()
+	midiStreamParser = new MidiStreamParser()
 
 	get baseMidiChannel(): number {
 		return this.config?.midiChannel ?? 0
@@ -45,6 +51,7 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 			this.log('error', `Unable to parse config object during init method: ${JSON.stringify(error)}`)
 		}
 		UpdateActions(this)
+		UpdateFeedbacks(this)
 		this.initialiseMidi()
 	}
 
@@ -75,6 +82,9 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 			return
 		}
 		this.destroyMidiSocket()
+		this.midiStreamParser.reset()
+		this.state.clear()
+		this.checkFeedbacks()
 
 		const { host, midiPort } = this.config
 		this.midiSocket = new TCPHelper(host, midiPort)
@@ -86,10 +96,33 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 			})
 			.on('connect', () => {
 				this.log('debug', `MIDI Connected to ${host}`)
+				// Request the current state for every placed feedback
+				this.subscribeFeedbacks()
 			})
 			.on('data', (data) => {
 				this.log('debug', `received MIDI data: ${data.toString('hex')}`)
+				this.handleMidiData(data)
 			})
+	}
+
+	/**
+	 * Decodes MIDI data received from the dLive, updates the cached state
+	 * and asks Companion to re-check any affected feedbacks
+	 * @param data - A chunk of data received from the MIDI TCP socket
+	 */
+	handleMidiData(data: Buffer): void {
+		for (const message of this.midiStreamParser.push(data)) {
+			const event = decodeMidiMessage(message, this.baseMidiChannel)
+			if (!event) {
+				continue
+			}
+			this.state.applyEvent(event)
+			switch (event.type) {
+				case 'input_to_group_aux_on':
+					this.checkFeedbacks('inputToGroupAuxOn')
+					break
+			}
+		}
 	}
 
 	/**
@@ -228,6 +261,25 @@ export class ModuleInstance extends InstanceBase<DLiveModuleConfig> {
 						this.baseMidiChannel + destinationMidiChannelOffset,
 						destinationChannelNo + destinationMidiNoteOffset,
 						shouldEnable ? 0x40 : 0x00,
+						0xf7,
+					])
+					break
+				}
+
+				case 'get_input_to_group_aux_on': {
+					const { channelNo, destinationChannelNo, destinationChannelType } = params
+					const { midiChannelOffset, midiNoteOffset } = getMidiOffsetsForChannelType('input')
+					const { midiChannelOffset: destinationMidiChannelOffset, midiNoteOffset: destinationMidiNoteOffset } =
+						getMidiOffsetsForChannelType(destinationChannelType)
+					this.sendMidiToDlive([
+						...SYSEX_HEADER,
+						this.baseMidiChannel + midiChannelOffset,
+						0x05,
+						0x0f,
+						0x0e,
+						channelNo + midiNoteOffset,
+						this.baseMidiChannel + destinationMidiChannelOffset,
+						destinationChannelNo + destinationMidiNoteOffset,
 						0xf7,
 					])
 					break

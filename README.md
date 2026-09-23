@@ -1,5 +1,12 @@
 # Allen & Heath dLive Module for Companion
 
+## An important note
+
+In this particular repo, I am making heavy use of claude for investigating and rapid prototyping. The code is not being checked by a person and should **never** be used in production.
+
+>**YOU HAVE BEEN WARNED**
+
+
 ## Getting started
 
 Install the dependencies:
