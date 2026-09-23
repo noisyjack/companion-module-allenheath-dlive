@@ -43,13 +43,14 @@ describe('inputToGroupAuxOn feedback', () => {
 	let moduleInstance: MockModuleInstance
 	let sendMidiToDliveSpy: jest.SpyInstance
 
-	const evaluate = (feedback: CompanionFeedbackBooleanEvent) => {
+	// The callback is synchronous, so narrow Companion's boolean | Promise<boolean> return type
+	const evaluate = (feedback: CompanionFeedbackBooleanEvent): boolean => {
 		const definition = moduleInstance.feedbackDefinitions.inputToGroupAuxOn
 		if (definition?.type !== 'boolean') throw new Error('inputToGroupAuxOn is not a boolean feedback')
-		return definition.callback(feedback, {} as CompanionFeedbackContext)
+		return definition.callback(feedback, {} as CompanionFeedbackContext) as boolean
 	}
 
-	const subscribe = (feedback: CompanionFeedbackBooleanEvent) =>
+	const subscribe = (feedback: CompanionFeedbackBooleanEvent): void | Promise<void> =>
 		moduleInstance.feedbackDefinitions.inputToGroupAuxOn?.subscribe?.(feedback, {} as CompanionFeedbackContext)
 
 	beforeEach(() => {

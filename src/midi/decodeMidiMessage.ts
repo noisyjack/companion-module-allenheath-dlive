@@ -29,11 +29,7 @@ const findChannel = (
 	for (const channelType of candidates) {
 		const offsets = getMidiOffsetsForChannelType(channelType)
 		const channelNo = note - offsets.midiNoteOffset
-		if (
-			offsets.midiChannelOffset === midiChannelOffset &&
-			channelNo >= 0 &&
-			channelNo < CHANNEL_COUNTS[channelType]
-		) {
+		if (offsets.midiChannelOffset === midiChannelOffset && channelNo >= 0 && channelNo < CHANNEL_COUNTS[channelType]) {
 			return { channelType, channelNo }
 		}
 	}
